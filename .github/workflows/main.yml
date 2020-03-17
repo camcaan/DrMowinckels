@@ -24,7 +24,7 @@ jobs:
     
       - name: Install packages
         run: | 
-          R -e 'install.packages(c("blogdown", "here",))' \
+          R -e 'install.packages(c("blogdown", "here"))' \
             -e 'install.packages(c("dplyr", "tidyr", "ggplot2", "stringr"))' \
             -e 'install.packages(c("glue", "knitr", "scholar"))' \
             -e 'install.packages(c("gargle", "sodium",))' \
