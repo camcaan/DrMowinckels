@@ -24,18 +24,19 @@ jobs:
     
       - name: Install packages
         run: | 
-          R -e 'install.packages(c("blogdown", "gargle", "sodium"))' \
+          R -e 'install.packages(c("blogdown", "here",))' \
             -e 'install.packages(c("dplyr", "tidyr", "ggplot2", "stringr"))' \
-            -e 'install.packages(c("googlesheets4", "knitr", "scholar"))' \
-            -e 'install.packages(c( "glue", "googledrive", "httr"))' 
-
+            -e 'install.packages(c("glue", "knitr", "scholar"))' \
+            -e 'install.packages(c("gargle", "sodium",))' \
+            -e 'install.packages(c( "googlesheets4", "googledrive", "httr"))' 
+ 
       - name: Install hugo
         run: |
           R -e 'blogdown::install_hugo()'
 
       - name: Re-build aboutme
         env:
-          DRMOWINCKELS_PASSWORD: ${{ secrets.GCP_CLIENT_IT }}
+          DRMOWINCKELS_PASSWORD: ${{ secrets.DRMOWINCKELS_PASSWORD }}
         run: |
           Rscript -e 'blogdown:::build_rmds("content/aboutme/aboutme.Rmd")' 
           
