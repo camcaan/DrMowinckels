@@ -18,33 +18,21 @@ jobs:
         run: |
           brew install pandoc
           brew install pandoc-citeproc
-      
-    # # - name: Remove rendered aboutme, to force re-render
-    #    run: |
-    #      rm public/aboutme/aboutme/index.html
-
-    #  - name: Cache Renv packages
-    #    uses: actions/cache@v1
-    #    with:
-    #      path: $HOME/.local/share/renv
-    #      key: r-${{ hashFiles('renv.lock') }}
-    #      restore-keys: r-
-
-    #  - name: Install packages
-    #    run: |
-    #      R -e 'install.packages("renv")'
-    #      R -e 'renv::restore()'
     
       - name: Install packages
         run: | 
           R -e 'install.packages(c("blogdown", "tidyverse"))' \
-            -e 'install.packages(c("rio", "knitr", "scholar"))' 
+            -e 'install.packages(c("googlesheets4", "knitr", "scholar"))' \
+            -e 'install.packages(c( "glue", "googledrive", "httr"))' 
 
       - name: Install hugo
         run: |
           R -e 'blogdown::install_hugo()'
 
       - name: Re-build aboutme
+        env:
+          GCP_CLIENT_IT: ${{ secrets.GCP_CLIENT_IT }}
+          GCP_SECRET: ${{ secrets.GCP_SECRET }}
         run: |
           Rscript -e 'blogdown:::build_rmds("content/aboutme/aboutme.Rmd")'
           

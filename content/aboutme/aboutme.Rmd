@@ -4,74 +4,184 @@ date: '`r Sys.Date()`'
 ---
  
 ```{r "setup", include=F,echo=F, warning=F, error=F}
-library(tidyverse);
+library(tidyverse)
+library(glue)
+library(googlesheets4)
+library(knitr)
+
+opts_chunk$set(echo = FALSE, 
+               warning=FALSE, 
+               # fig.margin = TRUE,
+               message = FALSE
+)
 options(knitr.kable.NA = '')
-CV = rio::import_list("~/Dropbox/Privat/Jobbsøking/CV-attester-etc/CV.xlsx")
+
+scholar_id <- "7NkxgWQAAAAJ"
+cv_id <- "1-XrhCvZ1x_Fwz4vYrz2nRzdizblddlvkgyGidcTtD4k"
+
+google_app <- httr::oauth_app(
+  "DrMowinckels-aboutme",
+  key = Sys.getenv("GCP_CLIENT_ID"),
+  secret = Sys.getenv("GCP_SECRET")
+)
+googledrive::drive_auth_configure(app = google_app)
 ```
 
-### In short
+
 <img src="img/profile.png" align="left" width="40%" style="padding: 1em; border:none; background: transparent; box-shadow: none;">
 
 I am a cognitive neuroscientist based in Oslo, Norway, and works at the [Center for Lifespan Changes in Brain and Cognition](www.oslobrains.no). I'm passionate about cognitive neuroscience, using R and teaching the world the wonders of R. Doing all I can to improve gender diversity in the R-community though [RLadies-Oslo](https://twitter.com/RLadies_Oslo). 
 
 
-### Education  
-```{r "Education", echo=F, results='asis'}
-CV$EDU %>%  
-  knitr::kable("markdown", booktabs = T)
+# Education  
 
-```
-### Work  
-```{r "Work", echo=F}
-CV$WORK %>% 
-  knitr::kable("markdown", booktabs = T)
-```
-### Commissions  
-```{r "Commissions", echo=F}
-CV$COMMISSION %>% 
-  knitr::kable("markdown", booktabs = T)
+```{r education}
+sheets_read(cv_id, sheet = "education") %>% 
+  transmute(
+    When = ifelse(is.na(end) | is.null(end), start, glue("{start} - {end}")),
+    Where =  ifelse(is.na(location) | is.null(location), place, glue("{place} - {location}")),
+    Degree = degree,
+    Subject = glue("{field} <br> _{thesis}_")
+  ) %>% 
+  kable("markdown", booktabs = T)
 ```
 
+# Research positions
 
-### Publications & Citations
-```{r "pubPlot", echo=FALSE, warning=FALSE, error=FALSE, dev.args = list(bg = 'transparent'), aniopts=c(interval = 0.8, loop=1)}
-scholar::get_citation_history("7NkxgWQAAAAJ") %>% 
-  mutate(cumulative=cumsum(cites)) %>% 
-  gather(metric, val, -1) %>% 
+```{r "research-pos"}
+sheets_read(cv_id, sheet = "work") %>% 
+  transmute(
+    When = ifelse(is.na(end) | is.null(end), start, glue("{start} - {end}")),
+    Where =  ifelse(is.na(location) | is.null(location), place, glue("{place} - {location}")),
+    Position = position, 
+    Summary = responsibilities
+  ) %>% 
+  kable("markdown", booktabs = TRUE, escape = FALSE) 
+```
 
-  ggplot(aes(x=year, y=val, group=metric, fill=metric, colour=metric)) + 
-  geom_line(lineend="round") + 
+# Teaching & Organising 
+In addition to teaching and workshops, I run a coding and neuroscience blog, [drmowinckels.io](https://drmowinckels.io) that includes tutorials in R and neuroimaging. I am also a certified [Software Carpentry Instructor](https://software-carpentry.org/).
+
+## University
+
+```{r ta}
+teaching <- sheets_read(cv_id, sheet = "teaching")
+  
+teaching %>% 
+  filter(type == "university") %>% 
+  transmute(
+    When = ifelse(is.na(end) | is.null(end), start, glue("{start} - {end}")),
+    Where =  ifelse(is.na(location) | is.null(location), place, glue("{place} - {location}")),
+    Role = role, 
+    Details = details
+  ) %>% 
+  kable("markdown", booktabs = T) 
+```
+
+## Workshops
+
+```{r workshops}
+teaching %>% 
+  filter(type == "workshop") %>% 
+  transmute(
+    When = ifelse(is.na(end) | is.null(end), start, glue("{start} - {end}")),
+    Where =  ifelse(is.na(location) | is.null(location), place, glue("{place} - {location}")),
+    Role = role, 
+    Details = details
+  ) %>% 
+  kable("markdown", booktabs = T) 
+```
+
+## Organising 
+```{r "organising", echo=FALSE}
+
+sheets_read(cv_id, sheet = "organising") %>% 
+  transmute(
+    When = ifelse(!is.na(end), glue("{start} - {end}"), start),
+    Where =  ifelse(is.na(location) | is.null(location), place, glue("{place} - {location}")),    Details = details
+  ) %>% 
+  kable(booktabs = TRUE)
+```
+
+# Commissions
+```{r commissions}
+sheets_read(cv_id, sheet = "commissions") %>% 
+  transmute(
+    When = ifelse(!is.na(end), glue("{start} - {end}"), start),
+    Where =  ifelse(is.na(location) | is.null(location), place, glue("{place} - {location}")),
+    Commission = commission, 
+    Details = details
+  ) %>% 
+  kable(booktabs = TRUE)
+```
+
+# Research software development
+
+A recent interest and professional endeavor is creating R-packages to improve data workflows and visualization in R.
+
+```{r r-pkgs}
+
+sheets_read(cv_id, sheet = "software") %>%  
+  mutate(gh_icon = fontawesome::fa("github", fill = "#004d4d"),
+         docs_icon = fontawesome::fa("globe", fill = "#004d4d")) %>% 
+  transmute(
+    Software =  glue("**{package}** <br> [{gh_icon}]({github}) [{docs_icon}]({docs})"),
+    Role = role, 
+    Purpose = purpose,
+    When = ifelse(!is.na(end), glue("{start} - {end}"), start)
+  ) %>% 
+  kable(booktabs = TRUE, escape = FALSE)
+```
+
+
+# Publications & Preprints
+
+```{r "pubPlot", dev.args = list(bg = 'transparent'), out.width= "65%"}
+scholar::get_citation_history(scholar_id) %>%
+  mutate(cumulative=cumsum(cites)) %>%
+  gather(metric, val, -1) %>%
+  ggplot(aes(x=year, y=val, group=metric, fill=metric, colour=metric)) +
+  geom_line(lineend="round") +
   geom_point(show.legend = F) +
-  annotate("text",x=-Inf,y=Inf,vjust=1.5,hjust=-0.05,size=3,colour='gray',
-           label=format(Sys.time(), "%d-%m-%Y %H:%M %Z")) + #add timestamp for the update
-  labs(y="Googe citations", x="Year") +
+  # annotate("text",x=-Inf,y=Inf,vjust=1.5,hjust=-0.05,size=3,colour='gray',
+  #          label=format(Sys.time(), "%d-%m-%Y")) + #add timestamp for the update
+  labs(
+    y="Googe citations", x="Year",
+       colour = "",
+       title = "Citations over time",
+       subtitle = "retrieved from google scholar",
+       caption = paste("Updated:", format(Sys.time(), "%d-%m-%Y"))
+       ) +
+  theme_minimal() +
   theme(panel.grid.major = element_line(color="#4E67691F"),
-        panel.background =  element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.background = element_blank(), 
-        legend.background = element_blank(),
         legend.position = "bottom",
-        legend.title = element_blank(),
-        legend.key = element_blank(),
         axis.line = element_line(),
         text = element_text(color="#4E6769"),
         line = element_line(color="#4E6769")) +
-  scale_color_manual(values=c("#2c3b3b", "#AD957F"))
-
+  scale_color_manual(values=c("#008080", "#004d4d"))
 ```
 
-
-```{r "pubList", results='asis', warning=FALSE, echo=FALSE}
-pubs = scholar::get_publications("7NkxgWQAAAAJ") %>% 
-  filter(journal != "") %>% 
-  mutate(cid     = ifelse(is.na(cid), NA, paste0("https://scholar.google.no/scholar?oi=bibs&hl=en&cluster=", cid))) %>% 
-  mutate(author  = gsub("Mowinckel", "**Mowinckel**", author), 
-         journal = ifelse(is.na(cid), paste0("_", journal,"_"), paste0("[_", journal,"_](", cid, ")")), 
-         number  = paste0("_",number,"_"),
-         year    = paste0("(",year,")")) %>% 
+```{r "pubList", results='asis'}
+scholar::get_publications("7NkxgWQAAAAJ") %>% 
   arrange(desc(year)) %>% 
-  transmute(pub=paste(author, year, title, journal, number, collapse="<br><br>")) 
-cat(pubs[1,])
-
+  filter(!is.na(year), !is.na(journal), journal != "") %>% 
+  as_tibble() %>% 
+  mutate_all(as.character) %>%
+  mutate(
+    when = ifelse(grepl("rxiv", journal, ignore.case = TRUE),
+                  glue("Preprint <br> {year}"),
+                  year), 
+    author = str_replace(author, "Mowinckel", "**Mowinckel**"),
+    author = str_replace(author, "\\.\\.\\.", "et al."),
+    journal = str_replace(journal, "&", "and"),
+    number = ifelse(number =="", " ", number),
+    cid = glue("https://scholar.google.no/scholar?oi=bibs&hl=en&cluster={cid}"),
+    journal = glue("[{journal} {number}]({cid})") 
+  ) %>% 
+  transmute(
+    when = when,
+    paper = glue("{author} <br> _{title}_: <br> {journal}"),
+    cites = cites,
+  ) %>% 
+  kable("markdown", booktabs = T) 
 ```
-
