@@ -4,7 +4,10 @@ date: '`r Sys.Date()`'
 ---
  
 ```{r "setup", include=F,echo=F, warning=F, error=F}
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
 library(glue)
 library(googlesheets4)
 library(knitr)
@@ -18,13 +21,23 @@ options(knitr.kable.NA = '')
 
 scholar_id <- "7NkxgWQAAAAJ"
 cv_id <- "1-XrhCvZ1x_Fwz4vYrz2nRzdizblddlvkgyGidcTtD4k"
+# 
+# google_app <- httr::oauth_app(
+#   "DrMowinckels-aboutme",
+#   key = Sys.getenv("GCP_CLIENT_ID"),
+#   secret = Sys.getenv("GCP_SECRET")
+# )
+# googledrive::drive_auth_configure(app = google_app)
 
-google_app <- httr::oauth_app(
-  "DrMowinckels-aboutme",
-  key = Sys.getenv("GCP_CLIENT_ID"),
-  secret = Sys.getenv("GCP_SECRET")
+path <- here::here("inst/secret/aboutme-update.json")
+raw  <- readBin(path, "raw", file.size(path))
+json <- sodium::data_decrypt(
+  bin = raw, 
+  key = sodium::sha256(charToRaw(Sys.getenv("DRMOWINCKELS_PASSWORD"))), 
+  nonce = gargle:::secret_nonce()
 )
-googledrive::drive_auth_configure(app = google_app)
+
+googledrive::drive_auth(path = rawToChar(json))
 ```
 
 
@@ -143,8 +156,6 @@ scholar::get_citation_history(scholar_id) %>%
   ggplot(aes(x=year, y=val, group=metric, fill=metric, colour=metric)) +
   geom_line(lineend="round") +
   geom_point(show.legend = F) +
-  # annotate("text",x=-Inf,y=Inf,vjust=1.5,hjust=-0.05,size=3,colour='gray',
-  #          label=format(Sys.time(), "%d-%m-%Y")) + #add timestamp for the update
   labs(
     y="Googe citations", x="Year",
        colour = "",

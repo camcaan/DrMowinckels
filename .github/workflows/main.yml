@@ -1,6 +1,9 @@
 on:
   push:
     branches: aboutme
+#  schedule:
+#    # * is a special character in YAML so you have to quote this string
+#    - cron:  '* */12 * * *
  
 name: update-aboutme
 
@@ -21,7 +24,8 @@ jobs:
     
       - name: Install packages
         run: | 
-          R -e 'install.packages(c("blogdown", "tidyverse"))' \
+          R -e 'install.packages(c("blogdown", "gargle", "sodium"))' \
+            -e 'install.packages(c("dplyr", "tidyr", "ggplot2", "stringr"))' \
             -e 'install.packages(c("googlesheets4", "knitr", "scholar"))' \
             -e 'install.packages(c( "glue", "googledrive", "httr"))' 
 
@@ -31,10 +35,9 @@ jobs:
 
       - name: Re-build aboutme
         env:
-          GCP_CLIENT_IT: ${{ secrets.GCP_CLIENT_IT }}
-          GCP_SECRET: ${{ secrets.GCP_SECRET }}
+          DRMOWINCKELS_PASSWORD: ${{ secrets.GCP_CLIENT_IT }}
         run: |
-          Rscript -e 'blogdown:::build_rmds("content/aboutme/aboutme.Rmd")'
+          Rscript -e 'blogdown:::build_rmds("content/aboutme/aboutme.Rmd")' 
           
       - name: Install npm
         uses: actions/setup-node@v1
