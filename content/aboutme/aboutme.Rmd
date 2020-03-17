@@ -21,15 +21,8 @@ options(knitr.kable.NA = '')
 
 scholar_id <- "7NkxgWQAAAAJ"
 cv_id <- "1-XrhCvZ1x_Fwz4vYrz2nRzdizblddlvkgyGidcTtD4k"
-# 
-# google_app <- httr::oauth_app(
-#   "DrMowinckels-aboutme",
-#   key = Sys.getenv("GCP_CLIENT_ID"),
-#   secret = Sys.getenv("GCP_SECRET")
-# )
-# googledrive::drive_auth_configure(app = google_app)
 
-path <- here::here("inst/secret/aboutme-update.json")
+path <- "aboutme-update.json"
 raw  <- readBin(path, "raw", file.size(path))
 json <- sodium::data_decrypt(
   bin = raw, 
